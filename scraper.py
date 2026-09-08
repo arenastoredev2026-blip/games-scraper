@@ -2,10 +2,10 @@ import os
 import requests
 import cloudscraper
 import xml.etree.ElementTree as ET
-from dotenv import load_dotenv
+
 
 # تحميل متغيرات البيئة من ملف .env محلي (اختياري، لا تقم بإضافة .env للمخزن)
-load_dotenv()
+
 
 scraper = cloudscraper.create_scraper()
 
