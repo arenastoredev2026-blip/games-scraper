@@ -65,4 +65,4 @@ def scrape_full_catalog(max_pages=30):
 
 if __name__ == "__main__":
     # يمكن زيادة عدد الصفحات بزيادة الرقم 30
-    scrape_full_catalog(max_pages=1000)
+    scrape_full_catalog(max_pages=50)
