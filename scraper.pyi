@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 scraper = cloudscraper.create_scraper()
 
+# بيانات Supabase مباشرة لمنع أي خطأ
 SUPABASE_URL = "https://abfqwrkiehthppxxjser.supabase.co"
 SUPABASE_KEY = "sb_publishable_HNRw8Yu7J1KVMZCYi6DKUQ_-d9-dBgF"
 
