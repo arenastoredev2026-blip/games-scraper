@@ -3,66 +3,55 @@ import requests
 import cloudscraper
 import xml.etree.ElementTree as ET
 
-
-# تحميل متغيرات البيئة من ملف .env محلي (اختياري، لا تقم بإضافة .env للمخزن)
-
-
 scraper = cloudscraper.create_scraper()
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise SystemExit("Missing SUPABASE_URL or SUPABASE_KEY environment variables. Set them in your environment or GitHub Secrets.")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://abfqwrkiehthppxxjser.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_HNRw8Yu7J1KVMZCYi6DKUQ_-d9-dBgF")
 
 headers = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "Prefer": "return=minimal"
 }
 
-
 def sync_games():
-    print("🚀 جاري سحب الألعاب وتخطي الحماية...")
+    print("🚀 جاري جلب الألعاب...")
     url = "https://an1.com/feed/"
-    try:
-        response = scraper.get(url, timeout=20)
-        response.raise_for_status()
-    except Exception as e:
-        print("فشل في جلب الخلاصة:", e)
+    response = scraper.get(url)
+    
+    print(f"📡 حالة استجابة موقع الألعاب: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"❌ فشل فتح الموقع، كود الاستجابة: {response.status_code}")
         return
 
     try:
         root = ET.fromstring(response.content)
-    except ET.ParseError as e:
-        print("فشل في تحليل XML:", e)
-        return
+        items = root.findall('.//item')
+        print(f"📦 تم العثور على {len(items)} لعبة في القائمة")
 
-    for item in root.findall('.//item'):
-        title_el = item.find('title')
-        link_el = item.find('link')
-        if title_el is None or link_el is None:
-            continue
-        title = title_el.text or ""
-        link = link_el.text or ""
-        if not title or not link:
-            continue
+        for item in items:
+            title = item.find('title').text if item.find('title') is not None else "بدون عنوان"
+            link = item.find('link').text if item.find('link') is not None else ""
 
-        data = {
-            "name": title,
-            "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Picsart_logo.svg/512px-Picsart_logo.svg.png",
-            "download_url": link,
-            "description": "نسخة مهكرة ومعدلة جاهزة للتحميل",
-            "category": "ألعاب مهكرة"
-        }
+            data = {
+                "name": title,
+                "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Picsart_logo.svg/512px-Picsart_logo.svg.png",
+                "download_url": link,
+                "description": "نسخة مهكرة ومعدلة جاهزة للتحميل",
+                "category": "ألعاب مهكرة"
+            }
 
-        try:
-            res = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers, timeout=15)
-            res.raise_for_status()
-            print(f"تم إضافة: {title}")
-        except Exception as e:
-            print(f"فشل إضافة {title}:", e)
+            res = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
+            
+            if res.status_code in [200, 201]:
+                print(f"✅ تم إضافة: {title}")
+            else:
+                print(f"❌ فشل إضافة [{title}] - السبب من Supabase: ({res.status_code}) {res.text}")
 
+    except Exception as e:
+        print(f"❌ حدث خطأ أثناء تحليل البيانات: {e}")
 
 if __name__ == "__main__":
     sync_games()
