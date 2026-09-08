@@ -1,7 +1,7 @@
 import os
 import requests
 import cloudscraper
-import xml.etree.ElementTree as ET
+import feedparser
 
 scraper = cloudscraper.create_scraper()
 
@@ -26,32 +26,28 @@ def sync_games():
         print(f"❌ فشل فتح الموقع، كود الاستجابة: {response.status_code}")
         return
 
-    try:
-        root = ET.fromstring(response.content)
-        items = root.findall('.//item')
-        print(f"📦 تم العثور على {len(items)} لعبة في القائمة")
+    # تحليل البيانات باستخدام feedparser المرنة مع الـ RSS
+    feed = feedparser.parse(response.content)
+    print(f"📦 تم العثور على {len(feed.entries)} لعبة في القائمة")
 
-        for item in items:
-            title = item.find('title').text if item.find('title') is not None else "بدون عنوان"
-            link = item.find('link').text if item.find('link') is not None else ""
+    for entry in feed.entries:
+        title = entry.get('title', 'بدون عنوان')
+        link = entry.get('link', '')
 
-            data = {
-                "name": title,
-                "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Picsart_logo.svg/512px-Picsart_logo.svg.png",
-                "download_url": link,
-                "description": "نسخة مهكرة ومعدلة جاهزة للتحميل",
-                "category": "ألعاب مهكرة"
-            }
+        data = {
+            "name": title,
+            "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Picsart_logo.svg/512px-Picsart_logo.svg.png",
+            "download_url": link,
+            "description": "نسخة مهكرة ومعدلة جاهزة للتحميل",
+            "category": "ألعاب مهكرة"
+        }
 
-            res = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
-            
-            if res.status_code in [200, 201]:
-                print(f"✅ تم إضافة: {title}")
-            else:
-                print(f"❌ فشل إضافة [{title}] - السبب من Supabase: ({res.status_code}) {res.text}")
-
-    except Exception as e:
-        print(f"❌ حدث خطأ أثناء تحليل البيانات: {e}")
+        res = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
+        
+        if res.status_code in [200, 201]:
+            print(f"✅ تم إضافة: {title}")
+        else:
+            print(f"❌ فشل إضافة [{title}] - السبب: ({res.status_code}) {res.text}")
 
 if __name__ == "__main__":
     sync_games()
