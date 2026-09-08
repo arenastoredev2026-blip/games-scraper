@@ -19,7 +19,10 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests cloudscraper
+          pip install requests cloudscraper python-dotenv
 
       - name: Run Scraper Script
+        env:
+          SUPABASE_URL: "https://abfqwrkiehthppxxjser.supabase.co"
+          SUPABASE_KEY: "sb_publishable_HNRw8Yu7J1KVMZCYi6DKUQ_-d9-dBgF"
         run: python scraper.py
