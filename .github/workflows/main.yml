@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests cloudscraper python-dotenv feedparser
+          pip install requests cloudscraper beautifulsoup4
 
       - name: Run Scraper Script
         env:
