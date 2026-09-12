@@ -15,11 +15,11 @@ headers = {
     "Prefer": "return=minimal"
 }
 
-def scrape_full_catalog(max_pages=30):
-    # قسمنا المصادر لنوعين: الألعاب والتطبيقات
+def scrape_full_catalog(max_pages=5):
+    # خلينا التطبيقات في الأول عشان تتسحب وتظهر معاك بسرعة
     sections = [
-        {"path": "games", "category": "ألعاب مهكرة", "desc_prefix": "لعبة"},
-        {"path": "apps", "category": "تطبيقات معدلة", "desc_prefix": "تطبيق"}
+        {"path": "apps", "category": "تطبيقات معدلة", "desc_prefix": "تطبيق"},
+        {"path": "games", "category": "ألعاب مهكرة", "desc_prefix": "لعبة"}
     ]
     
     total_added = 0
@@ -28,7 +28,7 @@ def scrape_full_catalog(max_pages=30):
         print(f"\n🚀 بدء سحب كتالوج {section['category']}...")
         
         for page in range(1, max_pages + 1):
-            # تغيير الرابط بناءً على القسم (ألعاب أو تطبيقات)
+            # تحديد الرابط بناءً على القسم (تطبيقات أو ألعاب)
             url = f"https://an1.com/{section['path']}/page/{page}/" if page > 1 else f"https://an1.com/{section['path']}/"
             print(f"📄 جاري سحب الصفحة [{page}] من قسم {section['category']}...")
             
@@ -39,7 +39,7 @@ def scrape_full_catalog(max_pages=30):
                     break
                     
                 soup = BeautifulSoup(res.text, 'html.parser')
-                # البحث عن كافة مربعات العناصر في الصفحة
+                # البحث عن كافة مربعات التطبيقات/الألعاب في الصفحة
                 cards = soup.find_all('div', class_='item')
                 
                 if not cards:
@@ -61,7 +61,7 @@ def scrape_full_catalog(max_pages=30):
                                 "icon": icon if icon.startswith('http') else f"https://an1.com{icon}",
                                 "download_url": link,
                                 "description": f"تحميل {section['desc_prefix']} {title} نسخة مهكرة ومعدلة برابط مباشر",
-                                "category": section['category'] # هنا بياخد التصنيف الصح تلقائي
+                                "category": section['category']
                             }
                             
                             r = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
@@ -73,5 +73,5 @@ def scrape_full_catalog(max_pages=30):
                 print(f"❌ خطأ أثناء معالجة الصفحة {page} من قسم {section['category']}: {e}")
 
 if __name__ == "__main__":
-    # السكريبت هيسحب 50 صفحة ألعاب و 50 صفحة تطبيقات (إجمالي 100)
-    scrape_full_catalog(max_pages=50)
+    # محددين 5 صفحات بس عشان نجرب، ولما تتأكد إنها شغالة ممكن تخليها 30 أو 50 براحتك
+    scrape_full_catalog(max_pages=5)
