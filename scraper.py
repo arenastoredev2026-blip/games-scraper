@@ -16,53 +16,62 @@ headers = {
 }
 
 def scrape_full_catalog(max_pages=30):
-    print("🚀 بدء سحب كتالوج الألعاب الضخم...")
+    # قسمنا المصادر لنوعين: الألعاب والتطبيقات
+    sections = [
+        {"path": "games", "category": "ألعاب مهكرة", "desc_prefix": "لعبة"},
+        {"path": "apps", "category": "تطبيقات معدلة", "desc_prefix": "تطبيق"}
+    ]
+    
     total_added = 0
     
-    for page in range(1, max_pages + 1):
-        url = f"https://an1.com/games/page/{page}/" if page > 1 else "https://an1.com/games/"
-        print(f"📄 جاري سحب الصفحة [{page}]...")
+    for section in sections:
+        print(f"\n🚀 بدء سحب كتالوج {section['category']}...")
         
-        try:
-            res = scraper.get(url)
-            if res.status_code != 200:
-                print(f"⚠️ توقف عند الصفحة {page} (كود الاستجابة: {res.status_code})")
-                break
-                
-            soup = BeautifulSoup(res.text, 'html.parser')
-            # البحث عن كافة مربعات الألعاب في الصفحة
-            game_cards = soup.find_all('div', class_='item')
+        for page in range(1, max_pages + 1):
+            # تغيير الرابط بناءً على القسم (ألعاب أو تطبيقات)
+            url = f"https://an1.com/{section['path']}/page/{page}/" if page > 1 else f"https://an1.com/{section['path']}/"
+            print(f"📄 جاري سحب الصفحة [{page}] من قسم {section['category']}...")
             
-            if not game_cards:
-                print("🏁 اكتمل سحب جميع الألعاب المتاحة.")
-                break
-                
-            for card in game_cards:
-                link_tag = card.find('a')
-                img_tag = card.find('img')
-                
-                if link_tag and img_tag:
-                    title = img_tag.get('alt', '').strip() or link_tag.text.strip()
-                    link = link_tag.get('href', '')
-                    icon = img_tag.get('src', '') or img_tag.get('data-src', '')
+            try:
+                res = scraper.get(url)
+                if res.status_code != 200:
+                    print(f"⚠️ توقف عند الصفحة {page} (كود الاستجابة: {res.status_code})")
+                    break
                     
-                    if title and link:
-                        data = {
-                            "name": title,
-                            "icon": icon if icon.startswith('http') else f"https://an1.com{icon}",
-                            "download_url": link,
-                            "description": f"تحميل لعبة {title} نسخة مهكرة ومعدلة برابط مباشر",
-                            "category": "ألعاب مهكرة"
-                        }
+                soup = BeautifulSoup(res.text, 'html.parser')
+                # البحث عن كافة مربعات العناصر في الصفحة
+                cards = soup.find_all('div', class_='item')
+                
+                if not cards:
+                    print(f"🏁 اكتمل سحب جميع الـ {section['category']} المتاحة في هذا القسم.")
+                    break
+                    
+                for card in cards:
+                    link_tag = card.find('a')
+                    img_tag = card.find('img')
+                    
+                    if link_tag and img_tag:
+                        title = img_tag.get('alt', '').strip() or link_tag.text.strip()
+                        link = link_tag.get('href', '')
+                        icon = img_tag.get('src', '') or img_tag.get('data-src', '')
                         
-                        r = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
-                        if r.status_code in [200, 201]:
-                            total_added += 1
-                            print(f"✅ [{total_added}] تم إضافة: {title}")
+                        if title and link:
+                            data = {
+                                "name": title,
+                                "icon": icon if icon.startswith('http') else f"https://an1.com{icon}",
+                                "download_url": link,
+                                "description": f"تحميل {section['desc_prefix']} {title} نسخة مهكرة ومعدلة برابط مباشر",
+                                "category": section['category'] # هنا بياخد التصنيف الصح تلقائي
+                            }
                             
-        except Exception as e:
-            print(f"❌ خطأ أثناء معالجة الصفحة {page}: {e}")
+                            r = requests.post(f"{SUPABASE_URL}/rest/v1/apps", json=data, headers=headers)
+                            if r.status_code in [200, 201]:
+                                total_added += 1
+                                print(f"✅ [{total_added}] تم إضافة: {title} ({section['category']})")
+                                
+            except Exception as e:
+                print(f"❌ خطأ أثناء معالجة الصفحة {page} من قسم {section['category']}: {e}")
 
 if __name__ == "__main__":
-    # يمكن زيادة عدد الصفحات بزيادة الرقم 30
+    # السكريبت هيسحب 50 صفحة ألعاب و 50 صفحة تطبيقات (إجمالي 100)
     scrape_full_catalog(max_pages=50)
